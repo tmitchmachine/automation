@@ -1,0 +1,136 @@
+# AI Code Automation Assistant Configuration
+
+# Virtual Environment Configuration
+virtual_environment:
+  enabled: true
+  path: "./venv"
+  python_path: "./venv/bin/python"
+  pip_path: "./venv/bin/pip"
+
+# Repository Configuration
+repositories:
+  - name: "automation"
+    path: "/Users/heavenya/Github/automation"
+    enabled: true
+    file_extensions: [".py", ".js", ".ts", ".java", ".cpp", ".c", ".h"]
+    exclude_patterns:
+      ["node_modules", "__pycache__", ".git", "venv", "env", "logs", "backups"]
+
+  - name: "genplan"
+    path: "/Users/heavenya/Github/genplan"
+    enabled: true
+    file_extensions: [".py", ".js", ".ts", ".java", ".cpp", ".c", ".h"]
+    exclude_patterns: ["node_modules", "__pycache__", ".git", "venv", "env"]
+
+  - name: "heavenya"
+    path: "/Users/heavenya/Github/heavenya"
+    enabled: true
+    file_extensions: [".py", ".js", ".ts", ".java", ".cpp", ".c", ".h"]
+    exclude_patterns: ["node_modules", "__pycache__", ".git", "venv", "env"]
+
+  - name: "ironflowlive"
+    path: "/Users/heavenya/Github/ironflowlive"
+    enabled: true
+    file_extensions: [".py", ".js", ".ts", ".java", ".cpp", ".c", ".h"]
+    exclude_patterns: ["node_modules", "__pycache__", ".git", "venv", "env"]
+
+  - name: "returnstate"
+    path: "/Users/heavenya/Github/returnstate"
+    enabled: true
+    file_extensions: [".py", ".js", ".ts", ".java", ".cpp", ".c", ".h"]
+    exclude_patterns: ["node_modules", "__pycache__", ".git", "venv", "env"]
+
+  - name: "sweetspots"
+    path: "/Users/heavenya/Github/sweetspots"
+    enabled: true
+    file_extensions: [".py", ".js", ".ts", ".java", ".cpp", ".c", ".h"]
+    exclude_patterns: ["node_modules", "__pycache__", ".git", "venv", "env"]
+
+# AI Provider Configuration
+ai_providers:
+  # Google Gemini (FREE TIER AVAILABLE)
+  gemini:
+    enabled: true
+    api_key: "${GEMINI_API_KEY}"
+    model: "gemini-pro"
+    max_tokens: 4000
+    temperature: 0.3
+
+  # OpenAI GPT (FREE TIER AVAILABLE)
+  openai:
+    enabled: true
+    api_key: "${OPENAI_API_KEY}"
+    model: "gpt-3.5-turbo"
+    max_tokens: 4000
+    temperature: 0.3
+
+  # Ollama (COMPLETELY FREE - runs locally)
+  ollama:
+    enabled: true
+    model: "codellama"
+    url: "http://localhost:11434"
+    max_tokens: 4000
+    temperature: 0.3
+
+  # Hugging Face (FREE TIER AVAILABLE)
+  huggingface:
+    enabled: true
+    api_key: "${HUGGINGFACE_API_KEY}"
+    model: "microsoft/DialoGPT-medium"
+    max_tokens: 4000
+    temperature: 0.3
+
+  # Anthropic Claude (PAID - $5+ per month)
+  claude:
+    enabled: false # Disabled by default due to cost
+    api_key: "${ANTHROPIC_API_KEY}"
+    model: "claude-3-sonnet-20240229"
+    max_tokens: 4000
+    temperature: 0.3
+
+# Default AI provider to use (recommended: gemini or openai for free tier)
+default_provider: "gemini"
+
+# File Processing Settings
+file_processing:
+  max_file_size_mb: 1
+  backup_original_files: true
+  backup_directory: "./backups"
+  create_git_commits: false
+  auto_apply_changes: true
+
+# Task Settings
+tasks:
+  default_goals:
+    - "improve code readability"
+    - "add type hints where missing"
+    - "optimize imports"
+    - "add docstrings"
+
+  custom_goals:
+    refactor: "Refactor the code for better readability and maintainability"
+    test: "Add comprehensive unit tests for the code"
+    performance: "Optimize the code for better performance"
+    security: "Fix potential security vulnerabilities"
+    documentation: "Add or improve documentation and comments"
+
+# CLI Settings
+cli:
+  interactive_mode: true
+  show_progress: true
+  verbose_output: false
+  color_output: true
+
+# Monitoring Settings
+monitoring:
+  watch_mode: false
+  check_interval_seconds: 300
+  max_files_per_run: 50
+  parallel_processing: false
+
+# Logging
+logging:
+  level: "INFO"
+  file: "./logs/ai_assistant.log"
+  max_file_size_mb: 10
+  backup_count: 5
