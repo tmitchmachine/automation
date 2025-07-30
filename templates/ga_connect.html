@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connect Google Analytics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+        <div class="text-center mb-8">
+            <h1 class="text-2xl font-bold text-gray-800">Connect Google Analytics</h1>
+            <p class="text-gray-600 mt-2">Connect your Google Analytics account to get started</p>
+        </div>
+
+        <div class="space-y-6">
+            <!-- Step 1: Enter GA4 Property ID -->
+            <div class="space-y-2">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 h-6 w-6 rounded-full bg-blue-500 text-white flex items-center justify-center">1</div>
+                    <h2 class="ml-3 text-lg font-medium text-gray-900">Enter your GA4 Property ID</h2>
+                </div>
+                <div class="ml-9">
+                    <input type="text" id="propertyId" 
+                           class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           placeholder="e.g., 379123456" required>
+                    <p class="mt-1 text-sm text-gray-500">
+                        You can find this in your Google Analytics Admin > Property Settings
+                    </p>
+                </div>
+            </div>
+
+            <!-- Step 2: Connect Google Account -->
+            <div class="space-y-2">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 h-6 w-6 rounded-full bg-blue-500 text-white flex items-center justify-center">2</div>
+                    <h2 class="ml-3 text-lg font-medium text-gray-900">Connect your Google Account</h2>
+                </div>
+                <div class="ml-9">
+                    <button id="connectButton" 
+                            class="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <svg class="w-5 h-5 mr-2" viewBox="0 0 24 24">
+                            <g transform="matrix(1, 0, 0, 1, 27.009001, -39.238998)">
+                                <path fill="#4285F4" d="M -3.264 51.509 C -3.264 50.719 -3.334 49.969 -3.454 49.239 L -14.754 49.239 L -14.754 53.749 L -8.28426 53.749 C -8.52464 55.229 -9.24465 56.529 -10.2582 57.499 L -10.2582 60.569 L -15.2735 60.569 C -18.9995 57.129 -21.004 52.159 -21.004 46.439 C -21.004 45.329 -20.9034 44.249 -20.714 43.199 C -19.5764 38.249 -16.4634 34.139 -12.264 31.949 L -12.264 35.819 C -15.4646 37.809 -17.574 41.309 -17.574 45.309 C -17.574 47.989 -16.604 50.409 -14.954 52.099 L -14.964 52.109 L -9.68415 56.819 L -9.67415 56.809 C -7.60465 58.619 -4.9044 59.599 -1.994 59.619 C 1.6456 59.619 5.0856 58.069 7.5354 55.529 C 10.0152 52.959 11.476 49.539 11.476 45.759 C 11.476 44.969 11.4156 44.189 11.3158 43.429 C 10.5764 38.799 7.4154 34.889 3.2056 33.219"/>
+                                <path fill="#34A853" d="M -12.264 31.949 C -8.23383 29.919 -4.9644 26.309 -3.77398 21.999 L -10.2244 21.999 C -11.4848 25.259 -13.8052 27.959 -16.784 29.469 L -12.264 31.949 Z"/>
+                                <path fill="#FBBC05" d="M -0.744248 36.419 C 0.9652 36.419 2.5656 36.879 3.9552 37.709 C 5.3448 38.539 6.4352 39.689 7.1056 41.069 L 11.7156 37.499 C 10.0856 33.989 6.7056 31.619 2.8152 31.619 C -0.77475 31.619 -4.11435 33.559 -6.13495 36.529 L -1.52495 40.089 C -0.53495 37.939 0.97525 36.419 -0.76475 36.419"/>
+                                <path fill="#EA4335" d="M 2.8152 21.249 C 4.5652 21.289 6.1956 21.949 7.4952 23.019 L 11.7456 19.009 C 10.0856 15.539 6.6956 13.249 2.8152 13.249 C -0.77475 13.249 -4.11435 15.089 -6.13495 18.069 L -1.52495 21.629 C -0.53495 19.469 0.98525 17.889 2.8152 17.889 C 3.6652 17.889 4.4756 18.039 5.2256 18.229 C 5.9756 18.419 6.6656 18.709 7.2756 19.109 C 7.8856 19.509 8.4156 19.999 8.8356 20.579 L 4.3656 24.499 C 3.8356 23.589 3.3756 22.599 3.1056 21.529 C 2.8356 20.459 2.7656 19.349 2.9056 18.259 L 2.9056 21.249 H 2.8152"/>
+                            </g>
+                        </svg>
+                        Sign in with Google
+                    </button>
+                    <p class="mt-1 text-sm text-gray-500">
+                        We'll only request read-only access to your Google Analytics data
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Message -->
+        <div id="statusMessage" class="mt-6 p-3 rounded-md hidden">
+            <p class="text-sm"></p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('connectButton').addEventListener('click', function() {
+            const propertyId = document.getElementById('propertyId').value.trim();
+            const statusDiv = document.getElementById('statusMessage');
+            const statusText = statusDiv.querySelector('p');
+            
+            if (!propertyId) {
+                statusDiv.className = 'mt-6 p-3 rounded-md bg-red-100 text-red-700';
+                statusText.textContent = 'Please enter your GA4 Property ID';
+                statusDiv.classList.remove('hidden');
+                return;
+            }
+            
+            // Store the property ID in session storage
+            sessionStorage.setItem('ga_property_id', propertyId);
+            
+            // Redirect to the OAuth endpoint
+            window.location.href = '/authorize';
+        });
+    </script>
+</body>
+</html>

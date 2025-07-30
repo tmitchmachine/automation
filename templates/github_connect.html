@@ -21,7 +21,6 @@
     }
 
     function validateForm() {
-        const gaApiKey = document.getElementById('ga_api_key').value;
         const gaPropertyId = document.getElementById('ga_property_id').value;
         const repoUrl = document.getElementById('repo_url').value;
         const token = document.getElementById('token').value;
@@ -31,8 +30,8 @@
         const prompt = document.getElementById('prompt').value;
 
         // Validate required fields
-        if (!gaApiKey || !gaPropertyId) {
-            alert('Please enter both Google Analytics API key and Property ID');
+        if (!gaPropertyId) {
+            alert('Please enter your Google Analytics Property ID');
             return false;
         }
 
@@ -65,21 +64,7 @@
                         <div class="py-8 text-base leading-6 space-y-4 text-gray-700 sm:text-lg sm:leading-7">
                             <h1 class="text-3xl font-bold text-center mb-8 text-purple-800">Project Setup Assistant</h1>
                             <form method="POST" action="/setup" onsubmit="return validateForm()">
-                <div class="mb-6">
-                    <label for="ga_api_key" class="block text-sm font-medium text-gray-700">
-                        Google Analytics API Key
-                    </label>
-                    <div class="mt-1">
-                        <input type="text" 
-                               id="ga_api_key" 
-                               name="ga_api_key" 
-                               class="block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
-                               placeholder="Enter your Google Analytics API key"
-                               required>
-                    </div>
-                </div>
-
-                <div class="mb-6">
+<div class="mb-6">
                     <label for="ga_property_id" class="block text-sm font-medium text-gray-700">
                         Google Analytics Property ID
                     </label>

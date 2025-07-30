@@ -9,6 +9,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 import git
 from git import Repo
+from functools import wraps
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -18,39 +19,88 @@ logger = logging.getLogger(__name__)
 import eventlet
 eventlet.monkey_patch()
 
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from flask_socketio import SocketIO, emit
 
 app = Flask(__name__)
 load_dotenv()
 
+# Configure session
+app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'dev-key-please-change')
+
 # Configure Socket.IO
 socketio = SocketIO(app, cors_allowed_origins="*")
+
+# Import GA OAuth after app is created
+from ga_oauth import authorize, oauth2callback, get_analytics_data
 
 # Global counters
 github_activity_count = 0
 analytics_events_count = 0
 agent_activity_count = 0
 
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'credentials' not in session:
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return decorated_function
+
 @app.route('/')
 def index():
-    return render_template('github_connect.html')
+    # If user is already authenticated, redirect to dashboard
+    if 'credentials' in session:
+        return redirect(url_for('analytics_dashboard'))
+    return render_template('ga_connect.html')
 
-@app.route('/dashboard')
-def dashboard():
-    return render_template('dashboard.html')
+@app.route('/authorize')
+def authorize_google():
+    return authorize()
+
+@app.route('/oauth2callback')
+def oauth_callback():
+    return oauth2callback()
+
+@app.route('/analytics')
+@login_required
+def analytics_dashboard():
+    # Get property ID from session or request args
+    property_id = session.get('ga_property_id') or request.args.get('property_id')
+    if not property_id:
+        return redirect(url_for('index'))
+    
+    # Store property ID in session
+    session['ga_property_id'] = property_id
+    
+    # Get analytics data
+    analytics_data = get_analytics_data(property_id)
+    
+    if not analytics_data:
+        return render_template('error.html', 
+                            title='Analytics Error',
+                            message='Could not fetch analytics data. Please try again.')
+    
+    return render_template('dashboard.html', 
+                         analytics_data=analytics_data,
+                         property_id=property_id)
+
+@app.route('/logout')
+def logout():
+    # Clear the session
+    session.clear()
+    return redirect(url_for('index'))
 
 @app.route('/setup', methods=['POST'])
 def setup():
     try:
         # Get Google Analytics credentials
-        ga_api_key = request.form.get('ga_api_key')
         ga_property_id = request.form.get('ga_property_id')
         
-        if not ga_api_key or not ga_property_id:
+        if not ga_property_id:
             return jsonify({
                 'status': 'error',
-                'message': 'Google Analytics credentials are required'
+                'message': 'Google Analytics Property ID is required'
             }), 400
 
         # Get GitHub repository information
@@ -86,176 +136,34 @@ def setup():
         try:
             # Clone the repository
             repo = Repo.clone_from(auth_url, repo_path)
-            
-            # Handle branch selection/creation
             try:
-                if branch_type == 'existing':
-                    # Check out existing branch
-                    if branch != 'other':
-                        repo.git.checkout(branch)
-                    else:
-                        return jsonify({
-                            'status': 'error',
-                            'message': 'Please select a valid branch'
-                        }), 400
-                else:  # Creating new branch
-                    if not new_branch_name:
-                        return jsonify({
-                            'status': 'error',
-                            'message': 'Please enter a name for the new branch'
-                        }), 400
-                    
-                    # Create and checkout new branch
-                    repo.git.checkout('-b', new_branch_name)
-                    branch = new_branch_name  # Update branch variable for config
-            except git.exc.GitCommandError as e:
-                return jsonify({
-                    'status': 'error',
-                    'message': f'Failed to create branch: {str(e)}'
-                }), 500
+                repo_name = repo_url.split('/')[-1].replace('.git', '')
+                repo_path = os.path.join('repos', repo_name)
+                
+                if os.path.exists(repo_path):
+                    shutil.rmtree(repo_path)
+                
+                Repo.clone_from(repo_url, repo_path)
+                logging.info(f'Successfully cloned repository: {repo_url}')
+            except Exception as e:
+                logging.error(f'Error cloning repository: {str(e)}')
+                return jsonify({'error': f'Failed to clone repository: {str(e)}'}), 500
 
-            # Start monitoring threads
-            threading.Thread(target=analyze_and_commit_changes, args=(repo_path, ga_api_key, ga_property_id, prompt)).start()
-            threading.Thread(target=monitor_analytics_events, args=(ga_api_key, ga_property_id)).start()
-            threading.Thread(target=monitor_agent_activity).start()
+        # Start analysis and monitoring in background threads
+        if repo_path:
+            threading.Thread(target=analyze_and_commit_changes, args=(repo_path, ga_property_id, prompt)).start()
+            threading.Thread(target=monitor_analytics_events, args=(ga_property_id,)).start()
 
-            # Store configuration
-            config = {
-                'ga_api_key': ga_api_key,
-                'ga_property_id': ga_property_id,
-                'repo_url': repo_url,
-                'branch': branch,
-                'branch_type': branch_type,
-                'new_branch_name': new_branch_name if branch_type == 'new' else None,
-                'prompt': prompt
-            }
-            
-            # Save configuration to file
-            with open(os.path.join(repo_path, 'project_config.json'), 'w') as f:
-                json.dump(config, f, indent=4)
-
-            # Emit setup complete event
-            socketio.emit('activity_log', 'Project setup completed successfully')
-
-            return jsonify({
-                'status': 'success',
-                'message': f'Successfully set up project with repository: {repo_name} on branch: {branch}'
-            })
-            
-        except git.exc.GitError as e:
-            return jsonify({
-                'status': 'error',
-                'message': f'Failed to clone repository: {str(e)}'
-            }), 500
-
-    except Exception as e:
         return jsonify({
-            'status': 'error',
-            'message': str(e)
-        }), 500
-    try:
-        # Get Google Analytics credentials
-        ga_api_key = request.form.get('ga_api_key')
-        ga_property_id = request.form.get('ga_property_id')
-        
-        if not ga_api_key or not ga_property_id:
-            return jsonify({
-                'status': 'error',
-                'message': 'Google Analytics credentials are required'
-            }), 400
-
-        # Get GitHub repository information
-        repo_url = request.form.get('repo_url')
-        token = request.form.get('token')
-        branch_type = request.form.get('branch_type')
-        branch = request.form.get('branch')
-        new_branch_name = request.form.get('new_branch_name')
-        prompt = request.form.get('prompt')
-        
-        if not repo_url or not token:
-            return jsonify({
-                'status': 'error',
-                'message': 'GitHub repository URL and token are required'
-            }), 400
-
-        # Validate repository URL format
-        if not repo_url.startswith('https://github.com/'):
-            return jsonify({
-                'status': 'error',
-                'message': 'Please provide a valid GitHub repository URL'
-            }), 400
-
-        # Replace username with token in URL
-        url_parts = repo_url.split('/')
-        url_parts[2] = f'{token}@github.com'
-        auth_url = '/'.join(url_parts)
-
-        # Create a directory for the repository
-        repo_name = repo_url.split('/')[-1].replace('.git', '')
-        repo_path = os.path.join('repos', repo_name)
-        
-        try:
-            # Clone the repository
-            repo = Repo.clone_from(auth_url, repo_path)
-            
-            # Handle branch selection/creation
-            try:
-                if branch_type == 'existing':
-                    # Check out existing branch
-                    if branch != 'other':
-                        repo.git.checkout(branch)
-                    else:
-                        return jsonify({
-                            'status': 'error',
-                            'message': 'Please select a valid branch'
-                        }), 400
-                else:  # Creating new branch
-                    if not new_branch_name:
-                        return jsonify({
-                            'status': 'error',
-                            'message': 'Please enter a name for the new branch'
-                        }), 400
-                    
-                    # Create and checkout new branch
-                    repo.git.checkout('-b', new_branch_name)
-                    branch = new_branch_name  # Update branch variable for config
-            except git.exc.GitCommandError as e:
-                return jsonify({
-                    'status': 'error',
-                    'message': f'Failed to create branch: {str(e)}'
-                }), 500
-
-            # Store configuration
-            config = {
-                'ga_api_key': ga_api_key,
-                'ga_property_id': ga_property_id,
-                'repo_url': repo_url,
-                'branch': branch,
-                'branch_type': branch_type,
-                'new_branch_name': new_branch_name if branch_type == 'new' else None,
-                'prompt': prompt
-            }
-            
-            # Save configuration to file
-            with open(os.path.join(repo_path, 'project_config.json'), 'w') as f:
-                json.dump(config, f, indent=4)
-
-            return jsonify({
-                'status': 'success',
-                'message': f'Successfully set up project with repository: {repo_name} on branch: {branch}'
-            })
-            
-        except git.exc.GitError as e:
-            return jsonify({
-                'status': 'error',
-                'message': f'Failed to clone repository: {str(e)}'
-            }), 500
-
+            'status': 'success',
+            'message': 'Analysis started',
+            'repo_path': repo_path,
+            'ga_property_id': ga_property_id,
+            'prompt': prompt
+        })
     except Exception as e:
-        return jsonify({
-            'status': 'error',
-            'message': str(e)
-        }), 500
+        logging.error(f'Error in setup: {str(e)}')
+        return jsonify({'error': str(e)}), 500
 
 # Removed old GitHub connect route as we now have a unified setup route
 def github_connect():
@@ -332,7 +240,7 @@ def connect():
         }), 500
 
 # Monitoring functions
-def analyze_and_commit_changes(repo_path, ga_api_key, ga_property_id, prompt):
+def analyze_and_commit_changes(repo_path, ga_property_id, prompt):
     """Analyze Google Analytics data and make code changes based on the prompt"""
     global github_activity_count
     while True:
@@ -344,7 +252,7 @@ def analyze_and_commit_changes(repo_path, ga_api_key, ga_property_id, prompt):
 
             # Simulate Google Analytics API connection
             # In a real app, this would use the actual Google Analytics API
-            analytics_data = get_google_analytics_data(ga_api_key, ga_property_id)
+            analytics_data = get_google_analytics_data(ga_property_id)
 
             # Analyze data and generate strategy
             strategy = analyze_data_and_generate_strategy(
@@ -357,7 +265,7 @@ def analyze_and_commit_changes(repo_path, ga_api_key, ga_property_id, prompt):
                 'pageViews': analytics_data['page_views'],
                 'conversions': analytics_data['conversions'],
                 'bounceRate': analytics_data['bounce_rate'],
-                'avgDuration': analytics_data['average_session_duration'],
+                'avgDuration': analytics_data['avg_session_duration'],
                 'goal': config['prompt'],
                 'strategy': strategy
             })
@@ -489,22 +397,89 @@ def apply_code_changes(repo_path, changes):
     # Emit overall success message
     socketio.emit('activity_log', 'Code changes applied successfully', 'success')
 
-def get_google_analytics_data(api_key, property_id):
-    """Simulate getting data from Google Analytics API"""
-    # In a real app, this would use the actual Google Analytics API
-    return {
-        'page_views': 1000,
-        'conversions': 50,
-        'bounce_rate': 0.25,
-        'average_session_duration': 120
-    }
+def get_google_analytics_data(property_id):
+    """
+    Get Google Analytics data using OAuth 2.0
+    """
+    try:
+        if 'credentials' not in session:
+            return {'error': 'User not authenticated'}
 
-def monitor_analytics_events(ga_api_key, ga_property_id):
+        # Get the stored credentials
+        credentials = google.oauth2.credentials.Credentials(
+            **session['credentials']
+        )
+
+        # Build the analytics data client
+        analytics = build('analyticsdata', 'v1beta', credentials=credentials)
+
+        # Define the request
+        request = {
+            'dateRanges': [
+                {
+                    'startDate': '30daysAgo',
+                    'endDate': 'today'
+                }
+            ],
+            'metrics': [
+                {'name': 'activeUsers'},
+                {'name': 'sessions'},
+                {'name': 'bounceRate'},
+                {'name': 'averageSessionDuration'},
+                {'name': 'screenPageViews'},
+                {'name': 'screenPageViewsPerSession'},
+                {'name': 'newUsers'},
+                {'name': 'conversions'}
+            ],
+            'dimensions': [{'name': 'pageTitle'}],
+            'limit': 1000
+        }
+
+        # Make the request
+        response = analytics.properties().runReport(
+            property=f'properties/{property_id}',
+            body=request
+        ).execute()
+
+        # Process the response
+        if not response.get('rows'):
+            return {'error': 'No data found'}
+
+        # Extract metrics
+        metrics = {}
+        for row in response['rows']:
+            for i, header in enumerate(response['metricHeaders']):
+                metric_name = header['name'].replace(' ', '_').lower()
+                metrics[metric_name] = row['metricValues'][i]['value']
+
+        # Get top pages
+        top_pages = []
+        for row in response['rows'][:5]:  # Get top 5 pages
+            page = row['dimensionValues'][0]['value']
+            views = int(row['metricValues'][5]['value'])  # screenPageViews
+            top_pages.append({'page': page, 'views': views})
+
+        return {
+            'users': int(metrics.get('active_users', 0)),
+            'sessions': int(metrics.get('sessions', 0)),
+            'bounce_rate': float(metrics.get('bounce_rate', 0)),
+            'avg_session_duration': float(metrics.get('average_session_duration', 0)),
+            'page_views': int(metrics.get('screen_page_views', 0)),
+            'pages_per_session': float(metrics.get('screen_page_views_per_session', 0)),
+            'new_users': int(metrics.get('new_users', 0)),
+            'top_pages': top_pages
+        }
+
+    except Exception as e:
+        logging.error(f'Error getting Google Analytics data: {str(e)}')
+        return None
+
+def monitor_analytics_events(ga_property_id):
     global analytics_events_count
     while True:
         try:
             # Get real analytics data
-            analytics_data = get_google_analytics_data(ga_api_key, ga_property_id)
+            analytics_data = get_google_analytics_data(ga_property_id)
             
             # Update analytics count
             analytics_events_count += 1
