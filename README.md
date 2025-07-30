@@ -100,6 +100,34 @@ The assistant supports multiple AI providers with different cost structures:
 
 ## Environment Variables
 
+### GitHub Repository Connection
+
+The application includes a GitHub repository connection feature that allows you to clone and manage GitHub repositories locally. To use this feature:
+
+1. Create a virtual environment and activate it:
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
+
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. Start the application:
+   ```bash
+   python app.py
+   ```
+
+4. Open your browser and navigate to `http://localhost:5001`
+
+5. Enter your GitHub repository URL and Personal Access Token to connect to a repository
+
+The application will clone the repository to a local `repos` directory and provide status updates.
+
+## Environment Variables
+
 The assistant requires API keys for AI providers. Create a `.env` file in the project root:
 
 ```bash

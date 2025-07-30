@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="min-h-screen">
+        <!-- Header -->
+        <header class="bg-white shadow">
+            <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+                <h1 class="text-3xl font-bold text-gray-900">Project Dashboard</h1>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main>
+            <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+                <!-- Overview Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <!-- GitHub Activity -->
+                    <div class="bg-white overflow-hidden shadow rounded-lg">
+                        <div class="p-5">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                    </svg>
+                                </div>
+                                <div class="ml-5 w-0 flex-1">
+                                    <dl>
+                                        <dt class="text-sm font-medium text-gray-500 truncate">GitHub Activity</dt>
+                                        <dd class="flex items-baseline">
+                                            <div class="text-2xl font-semibold text-gray-900">0</div>
+                                            <div class="ml-2 flex items-baseline text-sm font-semibold text-green-600">
+                                                <span class="sr-only">Increase</span>
+                                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                                </svg>
+                                            </div>
+                                        </dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Analytics Events -->
+                    <div class="bg-white overflow-hidden shadow rounded-lg">
+                        <div class="p-5">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                                <div class="ml-5 w-0 flex-1">
+                                    <dl>
+                                        <dt class="text-sm font-medium text-gray-500 truncate">Analytics Events</dt>
+                                        <dd class="flex items-baseline">
+                                            <div class="text-2xl font-semibold text-gray-900">0</div>
+                                            <div class="ml-2 flex items-baseline text-sm font-semibold text-green-600">
+                                                <span class="sr-only">Increase</span>
+                                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                                </svg>
+                                            </div>
+                                        </dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Agent Activity -->
+                    <div class="bg-white overflow-hidden shadow rounded-lg">
+                        <div class="p-5">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                    </svg>
+                                </div>
+                                <div class="ml-5 w-0 flex-1">
+                                    <dl>
+                                        <dt class="text-sm font-medium text-gray-500 truncate">Agent Activity</dt>
+                                        <dd class="flex items-baseline">
+                                            <div class="text-2xl font-semibold text-gray-900">0</div>
+                                            <div class="ml-2 flex items-baseline text-sm font-semibold text-green-600">
+                                                <span class="sr-only">Increase</span>
+                                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                                </svg>
+                                            </div>
+                                        </dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- GitHub Activity Chart -->
+                    <div class="bg-white overflow-hidden shadow rounded-lg p-6">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">GitHub Activity</h3>
+                        <canvas id="githubChart"></canvas>
+                    </div>
+
+                    <!-- Analytics Events Chart -->
+                    <div class="bg-white overflow-hidden shadow rounded-lg p-6">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Analytics Events</h3>
+                        <canvas id="analyticsChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Activity Log -->
+                <div class="bg-white overflow-hidden shadow rounded-lg mt-6">
+                    <div class="p-6">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Recent Activity</h3>
+                        <div id="activityLog" class="space-y-4">
+                            <!-- Activity items will be added here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Socket.IO Connection -->
+        <script>
+            const socket = io('http://localhost:5001');
+
+            // Update GitHub Activity Card
+            function updateGitHubActivity(count) {
+                document.querySelector('.github-activity-count').textContent = count;
+            }
+
+            // Update Analytics Events Card
+            function updateAnalyticsEvents(count) {
+                document.querySelector('.analytics-events-count').textContent = count;
+            }
+
+            // Update Agent Activity Card
+            function updateAgentActivity(count) {
+                document.querySelector('.agent-activity-count').textContent = count;
+            }
+
+            // Add Activity Log Item
+            function addActivityLogItem(message) {
+                const logDiv = document.getElementById('activityLog');
+                const item = document.createElement('div');
+                item.className = 'p-4 bg-gray-50 rounded-lg';
+                item.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-900">${message}</p>
+                            <p class="text-xs text-gray-500">${new Date().toLocaleTimeString()}</p>
+                        </div>
+                    </div>
+                `;
+                logDiv.insertBefore(item, logDiv.firstChild);
+            }
+
+            // Initialize Charts
+            const githubChart = new Chart(document.getElementById('githubChart'), {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'GitHub Activity',
+                        data: [],
+                        borderColor: 'rgb(79, 70, 229)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            const analyticsChart = new Chart(document.getElementById('analyticsChart'), {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Analytics Events',
+                        data: [],
+                        backgroundColor: 'rgb(59, 130, 246)',
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+
+            // Socket.IO Event Handlers
+            socket.on('github_activity', (data) => {
+                updateGitHubActivity(data.count);
+                githubChart.data.labels.push(new Date().toLocaleTimeString());
+                githubChart.data.datasets[0].data.push(data.count);
+                githubChart.update();
+            });
+
+            socket.on('analytics_event', (data) => {
+                updateAnalyticsEvents(data.count);
+                analyticsChart.data.labels.push(data.eventType);
+                analyticsChart.data.datasets[0].data.push(data.count);
+                analyticsChart.update();
+            });
+
+            socket.on('agent_activity', (data) => {
+                updateAgentActivity(data.count);
+            });
+
+            socket.on('activity_log', (message) => {
+                addActivityLogItem(message);
+            });
+        </script>
+    </div>
+</body>
+</html>
