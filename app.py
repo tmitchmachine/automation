@@ -1,4 +1,7 @@
 import os
+# This must be set before any other imports
+os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+
 import sys
 import time
 import json
@@ -135,19 +138,17 @@ def setup():
         
         try:
             # Clone the repository
-            repo = Repo.clone_from(auth_url, repo_path)
-            try:
-                repo_name = repo_url.split('/')[-1].replace('.git', '')
-                repo_path = os.path.join('repos', repo_name)
-                
-                if os.path.exists(repo_path):
-                    shutil.rmtree(repo_path)
-                
-                Repo.clone_from(repo_url, repo_path)
-                logging.info(f'Successfully cloned repository: {repo_url}')
-            except Exception as e:
-                logging.error(f'Error cloning repository: {str(e)}')
-                return jsonify({'error': f'Failed to clone repository: {str(e)}'}), 500
+            repo_name = repo_url.split('/')[-1].replace('.git', '')
+            repo_path = os.path.join('repos', repo_name)
+            
+            if os.path.exists(repo_path):
+                shutil.rmtree(repo_path)
+            
+            Repo.clone_from(auth_url, repo_path)
+            logging.info(f'Successfully cloned repository: {repo_url}')
+        except Exception as e:
+            logging.error(f'Error cloning repository: {str(e)}')
+            return jsonify({'error': f'Failed to clone repository: {str(e)}'}), 500
 
         # Start analysis and monitoring in background threads
         if repo_path:
@@ -521,14 +522,67 @@ def monitor_agent_activity():
         
         time.sleep(5)  # Check every 5 seconds
 
+def generate_self_signed_cert():
+    """Generate a self-signed certificate for local development"""
+    from OpenSSL import crypto
+    from pathlib import Path
+    import os
+    
+    cert_dir = os.path.join(os.path.dirname(__file__), 'certs')
+    os.makedirs(cert_dir, exist_ok=True)
+    
+    key_path = os.path.join(cert_dir, 'key.pem')
+    cert_path = os.path.join(cert_dir, 'cert.pem')
+    
+    if not os.path.exists(key_path) or not os.path.exists(cert_path):
+        # Generate key
+        k = crypto.PKey()
+        k.generate_key(crypto.TYPE_RSA, 2048)
+        
+        # Generate certificate
+        cert = crypto.X509()
+        cert.get_subject().C = "US"
+        cert.get_subject().ST = "State"
+        cert.get_subject().L = "City"
+        cert.get_subject().O = "Organization"
+        cert.get_subject().OU = "Organizational Unit"
+        cert.get_subject().CN = "localhost"
+        cert.set_serial_number(1000)
+        cert.gmtime_adj_notBefore(0)
+        cert.gmtime_adj_notAfter(365 * 24 * 60 * 60)  # Valid for 1 year
+        cert.set_issuer(cert.get_subject())
+        cert.set_pubkey(k)
+        cert.sign(k, 'sha256')
+        
+        # Save certificate
+        with open(cert_path, 'wb+') as f:
+            f.write(crypto.dump_certificate(crypto.FILETYPE_PEM, cert))
+        with open(key_path, 'wb+') as f:
+            f.write(crypto.dump_privatekey(crypto.FILETYPE_PEM, k))
+    
+    return cert_path, key_path
+
 if __name__ == '__main__':
     try:
         logger.info("Starting application...")
-        socketio.run(app, 
-                    host='0.0.0.0',
-                    port=5001,
-                    debug=True,
-                    use_reloader=False)
+        
+        # For development with self-signed certificate
+        import os
+        os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+        
+        # Start the Flask development server with SSL
+        # Note: This is for development only
+        context = ('ssl/cert.pem', 'ssl/key.pem')
+        
+        # Start the Flask development server directly
+        # This will use Werkzeug's development server with SSL
+        app.run(
+            host='0.0.0.0',
+            port=5002,  # Changed from 5001 to 5002 to avoid conflicts
+            debug=True,
+            ssl_context=context
+        )
+        
     except Exception as e:
         logger.error(f"Failed to start application: {str(e)}")
         raise

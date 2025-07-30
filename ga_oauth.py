@@ -1,20 +1,31 @@
 import os
 import json
+import logging
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
-from flask import session, redirect, url_for, request
-import logging
+from flask import session, redirect, url_for, request, current_app
+from requests_oauthlib import OAuth2Session
+from oauthlib.oauth2 import WebApplicationClient
+import warnings
+
+# Suppress only the single InsecureTransportWarning from oauthlib
+warnings.filterwarnings('ignore', message='Unverified HTTPS request')
+
+# Allow OAuth2 over HTTP for local development
+os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# OAuth 2.0 configuration
+# OAuth 2.0 client configuration
 CLIENT_SECRETS_FILE = 'client_secret.json'
 SCOPES = ['https://www.googleapis.com/auth/analytics.readonly']
-REDIRECT_URI = 'http://localhost:5001/oauth2callback'
+# Use localtunnel URL for OAuth callbacks
+REDIRECT_URI = 'https://eleven-hoops-strive.loca.lt/oauth2callback'  # Must match the redirect URI in the Google Cloud Console
+DEBUG = True  # Set to False in production
 
 def get_ga_service():
     """Get an authorized Google Analytics Data API service client."""
@@ -57,6 +68,16 @@ def get_flow():
         scopes=SCOPES,
         redirect_uri=REDIRECT_URI
     )
+    
+    # For development, allow HTTP and use custom session
+    if DEBUG:
+        flow.redirect_uri = flow.redirect_uri.replace('https://', 'http://')
+        flow.oauth2session = CustomOAuth2Session(
+            client_id=flow.client_config['client_id'],
+            scope=flow.scopes,
+            redirect_uri=flow.redirect_uri
+        )
+    
     return flow
 
 def authorize():
@@ -72,17 +93,31 @@ def authorize():
 
 def oauth2callback():
     """Handle the OAuth 2.0 server response."""
-    state = session.get('state')
-    
     flow = get_flow()
-    flow.fetch_token(authorization_response=request.url)
     
-    # Store the credentials in the session
-    credentials = flow.credentials
-    session['credentials'] = credentials_to_dict(credentials)
-    
-    # Redirect to the analytics page
-    return redirect(url_for('analytics_dashboard'))
+    try:
+        # Use the authorization server's response to fetch the OAuth 2.0 tokens.
+        authorization_response = request.url
+        if DEBUG and authorization_response.startswith('http://'):
+            authorization_response = authorization_response.replace('http://', 'https://', 1)
+            
+        # Add a small delay to ensure the token is processed
+        time.sleep(1)
+        
+        flow.fetch_token(
+            authorization_response=authorization_response,
+            verify=False  # Disable SSL verification for development
+        )
+        
+        # Store the credentials in the session.
+        credentials = flow.credentials
+        session['credentials'] = credentials_to_dict(credentials)
+        
+        return redirect(url_for('analytics_dashboard'))
+        
+    except Exception as e:
+        current_app.logger.error(f"OAuth callback error: {str(e)}")
+        return f"OAuth callback error: {str(e)}"
 
 def get_analytics_data(property_id, date_range='7daysAgo'):
     """Fetch analytics data for the given property."""
