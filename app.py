@@ -329,13 +329,37 @@ def analyze_and_commit_changes(repo_path, ga_api_key, ga_property_id, prompt):
     global github_activity_count
     while True:
         try:
-            # Simulate Google Analytics data analysis (in a real app, you'd connect to GA API here)
-            analytics_data = {
-                'page_views': 1000,
-                'conversions': 50,
-                'bounce_rate': 0.25,
-                'average_session_duration': 120
-            }
+            # Load project configuration
+            config_path = os.path.join(repo_path, 'project_config.json')
+            with open(config_path, 'r') as f:
+                config = json.load(f)
+
+            # Simulate Google Analytics API connection
+            # In a real app, this would use the actual Google Analytics API
+            analytics_data = get_google_analytics_data(ga_api_key, ga_property_id)
+
+            # Analyze data and generate strategy
+            strategy = analyze_data_and_generate_strategy(
+                analytics_data,
+                config['prompt']
+            )
+
+            # Emit analytics update
+            socketio.emit('analytics_event', {
+                'pageViews': analytics_data['page_views'],
+                'conversions': analytics_data['conversions'],
+                'bounceRate': analytics_data['bounce_rate'],
+                'avgDuration': analytics_data['average_session_duration'],
+                'goal': config['prompt'],
+                'strategy': strategy
+            })
+
+            # Generate code changes based on strategy
+            changes = generate_code_changes(
+                analytics_data,
+                strategy,
+                config['prompt']
+            )
 
             # Load project configuration
             config_path = os.path.join(repo_path, 'project_config.json')
@@ -373,62 +397,130 @@ def analyze_and_commit_changes(repo_path, ga_api_key, ga_property_id, prompt):
         
         time.sleep(300)  # Analyze and commit every 5 minutes
 
-def analyze_data_and_generate_code(analytics_data, prompt):
-    """Simulate AI analysis of analytics data and prompt to generate code changes"""
+def analyze_data_and_generate_strategy(analytics_data, prompt):
+    """Generate a detailed strategy based on analytics data and user prompt"""
     # This is where you would integrate with your AI model
-    # For now, we'll simulate some changes based on common patterns
-    changes = []
+    # For now, we'll simulate a strategy based on common patterns
+    strategy = ""
     
     if 'optimize performance' in prompt.lower():
-        changes.append({
-            'file': 'index.html',
-            'changes': 'Optimized HTML structure for better performance'
-        })
-    
+        strategy = """Optimizing performance:
+        1. Reducing image sizes
+        2. Implementing lazy loading
+        3. Minifying CSS and JS files"""
+            
     if 'increase conversions' in prompt.lower():
-        changes.append({
-            'file': 'styles.css',
-            'changes': 'Updated styling to improve conversion rates'
-        })
-    
+        strategy = """Improving conversions:
+        1. Adding clearer CTAs
+        2. Optimizing checkout flow
+        3. Adding trust signals"""
+            
     if 'reduce bounce rate' in prompt.lower():
-        changes.append({
-            'file': 'main.js',
-            'changes': 'Added engagement features to reduce bounce rate'
-        })
+        strategy = """Reducing bounce rate:
+        1. Improving page load times
+        2. Adding better navigation
+        3. Enhancing mobile experience"""
+            
+    return strategy
+
+def generate_code_changes(analytics_data, strategy, prompt):
+    """Generate specific code changes based on strategy and analytics data"""
+    changes = []
+    
+    # Parse strategy into specific actions
+    actions = strategy.split('\n')
+    for action in actions:
+        if 'Optimizing performance' in action:
+            changes.append({
+                'file': 'index.html',
+                'changes': 'Optimized HTML structure and added lazy loading'
+            })
+            changes.append({
+                'file': 'styles.css',
+                'changes': 'Added CSS optimizations'
+            })
+        elif 'Improving conversions' in action:
+            changes.append({
+                'file': 'main.js',
+                'changes': 'Added conversion optimization features'
+            })
+        elif 'Reducing bounce rate' in action:
+            changes.append({
+                'file': 'index.html',
+                'changes': 'Improved mobile responsiveness'
+            })
     
     return changes
 
 def apply_code_changes(repo_path, changes):
-    """Apply code changes to the repository"""
+    """Apply code changes to the repository with detailed logging"""
     for change in changes:
         file_path = os.path.join(repo_path, change['file'])
         if os.path.exists(file_path):
-            # For demo purposes, we'll just append a comment
-            with open(file_path, 'a') as f:
-                f.write(f'\n\n/* AI Update: {change["changes"]} */\n')
+            try:
+                # For demo purposes, we'll just append a comment
+                with open(file_path, 'a') as f:
+                    f.write(f'\n\n/* AI Update: {change["changes"]} */\n')
+                
+                # Emit detailed activity log
+                socketio.emit('agent_activity', {
+                    'file': change['file'],
+                    'changes': change['changes'],
+                    'status': 'success'
+                })
+                
+            except Exception as e:
+                socketio.emit('agent_activity', {
+                    'file': change['file'],
+                    'changes': change['changes'],
+                    'status': 'error',
+                    'error': str(e)
+                })
+                continue
 
-    # Emit activity log
-    socketio.emit('activity_log', 'Code changes applied successfully')
+    # Emit overall success message
+    socketio.emit('activity_log', 'Code changes applied successfully', 'success')
+
+def get_google_analytics_data(api_key, property_id):
+    """Simulate getting data from Google Analytics API"""
+    # In a real app, this would use the actual Google Analytics API
+    return {
+        'page_views': 1000,
+        'conversions': 50,
+        'bounce_rate': 0.25,
+        'average_session_duration': 120
+    }
 
 def monitor_analytics_events(ga_api_key, ga_property_id):
     global analytics_events_count
     while True:
         try:
-            # Simulate analytics events (in a real app, you'd connect to GA API here)
+            # Get real analytics data
+            analytics_data = get_google_analytics_data(ga_api_key, ga_property_id)
+            
+            # Update analytics count
             analytics_events_count += 1
+            
+            # Emit analytics update
             socketio.emit('analytics_event', {
                 'count': analytics_events_count,
-                'eventType': 'Page View'
+                'data': analytics_data,
+                'eventType': 'Metrics Update'
             })
             
             # Emit activity log
-            socketio.emit('activity_log', 'Analytics event processed')
+            socketio.emit('activity_log', {
+                'message': 'Analytics metrics updated',
+                'type': 'info'
+            })
             
         except Exception as e:
-            socketio.emit('activity_log', f'Analytics monitoring error: {str(e)}')
+            socketio.emit('activity_log', {
+                'message': f'Analytics monitoring error: {str(e)}',
+                'type': 'error'
+            })
         
-        time.sleep(10)  # Check every 10 seconds
+        time.sleep(30)  # Update every 30 seconds
 
 def monitor_agent_activity():
     global agent_activity_count

@@ -119,10 +119,50 @@
                     </div>
                 </div>
 
-                <!-- Activity Log -->
-                <div class="bg-white overflow-hidden shadow rounded-lg mt-6">
+                <!-- AI Analysis Panel -->
+                <div class="bg-white overflow-hidden shadow rounded-lg mb-6">
                     <div class="p-6">
-                        <h3 class="text-lg font-medium text-gray-900 mb-4">Recent Activity</h3>
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">AI Analysis</h3>
+                        <div class="space-y-4">
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <h4 class="font-medium text-gray-700">Current Goal</h4>
+                                <p id="currentGoal" class="mt-2 text-gray-600">Loading...</p>
+                            </div>
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <h4 class="font-medium text-gray-700">Analytics Summary</h4>
+                                <div id="analyticsSummary" class="mt-2 text-gray-600">
+                                    <div class="flex items-center space-x-2 mb-2">
+                                        <span class="text-sm text-gray-500">Page Views:</span>
+                                        <span id="pageViews" class="text-sm font-medium text-gray-800">0</span>
+                                    </div>
+                                    <div class="flex items-center space-x-2 mb-2">
+                                        <span class="text-sm text-gray-500">Conversions:</span>
+                                        <span id="conversions" class="text-sm font-medium text-gray-800">0</span>
+                                    </div>
+                                    <div class="flex items-center space-x-2 mb-2">
+                                        <span class="text-sm text-gray-500">Bounce Rate:</span>
+                                        <span id="bounceRate" class="text-sm font-medium text-gray-800">0%</span>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="text-sm text-gray-500">Avg Duration:</span>
+                                        <span id="avgDuration" class="text-sm font-medium text-gray-800">0s</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <h4 class="font-medium text-gray-700">AI Strategy</h4>
+                                <div id="aiStrategy" class="mt-2 text-gray-600">
+                                    <p>Loading...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Activity Log -->
+                <div class="bg-white overflow-hidden shadow rounded-lg">
+                    <div class="p-6">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">AI Activity</h3>
                         <div id="activityLog" class="space-y-4">
                             <!-- Activity items will be added here -->
                         </div>
@@ -150,16 +190,49 @@
                 document.querySelector('.agent-activity-count').textContent = count;
             }
 
-            // Add Activity Log Item
-            function addActivityLogItem(message) {
+            // Update AI Analysis Panel
+            function updateAiAnalysis(data) {
+                document.getElementById('currentGoal').textContent = data.goal || 'No goal set';
+                document.getElementById('pageViews').textContent = data.pageViews || '0';
+                document.getElementById('conversions').textContent = data.conversions || '0';
+                document.getElementById('bounceRate').textContent = `${data.bounceRate || 0}%`;
+                document.getElementById('avgDuration').textContent = `${data.avgDuration || 0}s`;
+                document.getElementById('aiStrategy').textContent = data.strategy || 'Analyzing...';
+            }
+
+            // Add Detailed Activity Log Item
+            function addActivityLogItem(message, type = 'info') {
                 const logDiv = document.getElementById('activityLog');
                 const item = document.createElement('div');
-                item.className = 'p-4 bg-gray-50 rounded-lg';
+                
+                // Set appropriate styling based on type
+                let bgColor = 'bg-gray-50';
+                let textColor = 'text-gray-900';
+                if (type === 'success') {
+                    bgColor = 'bg-green-50';
+                    textColor = 'text-green-800';
+                } else if (type === 'error') {
+                    bgColor = 'bg-red-50';
+                    textColor = 'text-red-800';
+                }
+
+                item.className = `p-4 rounded-lg ${bgColor}`;
                 item.innerHTML = `
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm text-gray-900">${message}</p>
+                            <p class="font-medium ${textColor}">${message}</p>
                             <p class="text-xs text-gray-500">${new Date().toLocaleTimeString()}</p>
+                        </div>
+                        <div class="flex-shrink-0">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                type === 'success' ? 'bg-green-100 text-green-800' :
+                                type === 'error' ? 'bg-red-100 text-red-800' :
+                                'bg-gray-100 text-gray-800'
+                            }">
+                                ${type === 'success' ? 'Success' :
+                                type === 'error' ? 'Error' :
+                                'Info'}
+                            </span>
                         </div>
                     </div>
                 `;
@@ -211,6 +284,24 @@
                 githubChart.data.labels.push(new Date().toLocaleTimeString());
                 githubChart.data.datasets[0].data.push(data.count);
                 githubChart.update();
+
+                // Add activity log entry
+                addActivityLogItem(`GitHub commit: ${data.commit_message}`, 'success');
+            });
+
+            socket.on('analytics_event', (data) => {
+                updateAnalyticsEvents(data.count);
+                analyticsChart.data.labels.push(data.eventType);
+                analyticsChart.data.datasets[0].data.push(data.count);
+                analyticsChart.update();
+
+                // Update AI analysis panel
+                updateAiAnalysis(data);
+            });
+
+            socket.on('agent_activity', (data) => {
+                updateAgentActivity(data.count);
+                addActivityLogItem(`AI Analysis: ${data.strategy}`, 'info');
             });
 
             socket.on('analytics_event', (data) => {
