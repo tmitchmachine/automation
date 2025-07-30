@@ -1,17 +1,25 @@
-from flask import Flask, render_template, request, jsonify
-from flask_socketio import SocketIO, emit
 import os
+import sys
+import time
+import json
+import shutil
+import threading
+import logging
+from datetime import datetime
 from dotenv import load_dotenv
 import git
 from git import Repo
-import shutil
-import json
-import eventlet
-import threading
-import time
-from datetime import datetime
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Import Flask and SocketIO after eventlet
+import eventlet
 eventlet.monkey_patch()
+
+from flask import Flask, render_template, request, jsonify
+from flask_socketio import SocketIO, emit
 
 app = Flask(__name__)
 load_dotenv()
@@ -539,4 +547,13 @@ def monitor_agent_activity():
         time.sleep(5)  # Check every 5 seconds
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True, port=5001)
+    try:
+        logger.info("Starting application...")
+        socketio.run(app, 
+                    host='0.0.0.0',
+                    port=5001,
+                    debug=True,
+                    use_reloader=False)
+    except Exception as e:
+        logger.error(f"Failed to start application: {str(e)}")
+        raise

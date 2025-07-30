@@ -94,7 +94,7 @@ The assistant supports multiple AI providers with different cost structures:
 - **Quality**: Variable depending on model
 - **Default**: Enabled by default
 
-### 💰 **Paid Options**
+### **Paid Options**
 - **Anthropic Claude**: $5+ per month (disabled by default)
 - **OpenAI GPT-4**: Paid tier of OpenAI
 
@@ -199,6 +199,84 @@ python main.py status
 
 Edit `config/settings.yaml` to configure:
 - Repository paths
+
+## Deployment
+
+### Using Docker
+
+1. Build the Docker image:
+```bash
+docker build -t project-automation .
+```
+
+2. Run the Docker container:
+```bash
+docker run -d -p 5001:5001 -e GA_API_KEY=your_key -e GA_PROPERTY_ID=your_id -e GITHUB_TOKEN=your_token project-automation
+```
+
+### Deploying to Production
+
+1. Set up your production environment:
+```bash
+# Create virtual environment and install dependencies
+python -m venv /path/to/venv
+source /path/to/venv/bin/activate
+pip install -r requirements.txt
+
+# Set environment variables
+export GA_API_KEY=your_key
+export GA_PROPERTY_ID=your_id
+export GITHUB_TOKEN=your_token
+```
+
+2. Configure WSGI server (e.g., Gunicorn):
+```bash
+gunicorn -w 4 -b 0.0.0.0:5001 app:app
+```
+
+3. Set up reverse proxy (e.g., Nginx):
+```nginx
+server {
+    listen 80;
+    server_name your-domain.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:5001;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
+
+## Usage
+
+1. Connect Google Analytics:
+   - Enter your Google Analytics API key and Property ID
+   - The application will validate the connection
+
+2. Connect GitHub Repository:
+   - Enter your GitHub repository URL
+   - Enter your GitHub Personal Access Token
+   - Select or create a branch for the project
+
+3. Set Project Objective:
+   - Enter a detailed prompt/objective for the AI to optimize
+   - Examples:
+     - "Optimize performance for mobile devices"
+     - "Increase conversion rates on checkout page"
+     - "Reduce bounce rate on landing pages"
+
+4. Monitor Changes:
+   - View real-time analytics metrics
+   - Track AI-generated code changes
+   - Monitor progress towards your objective
+
+## Security
+
+- Never commit your API keys or tokens to version control
+- Use environment variables for sensitive information
+- Regularly rotate your API keys and tokens
+- Enable two-factor authentication on your GitHub account
 - AI provider settings (Gemini, OpenAI, Ollama, Hugging Face, Claude)
 - File extensions to process
 - Backup settings
